@@ -1,125 +1,22 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>116 學年度研究所考試簡章查詢</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: transparent; }
-    .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 3px; }
-  </style>
-</head>
-<body class="p-4 sm:p-6">
-  <div class="max-w-5xl mx-auto bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
-    
-    <!-- 頂部搜尋與篩選 -->
-    <div class="p-5 border-b border-zinc-100 bg-zinc-50/50">
-      <div class="flex flex-col sm:flex-row gap-3">
-        <div class="relative flex-1">
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          <input type="text" id="searchInput" placeholder="搜尋學校、系所或考科（例：資工、資管、資料結構）..." class="w-full pl-9 pr-4 py-2 bg-white border border-zinc-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-zinc-800 transition" oninput="renderTable()">
-        </div>
-        <select id="schoolSelect" onchange="renderTable()" class="px-3 py-2 bg-white border border-zinc-300 rounded-lg text-sm font-medium text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-800">
-          <option value="ALL">全部學校</option>
-          <option value="台大">臺灣大學</option>
-          <option value="清大">清華大學</option>
-          <option value="陽明交大">陽明交通大學</option>
-          <option value="中山">中山大學</option>
-        </select>
-      </div>
-      <div class="mt-3 flex flex-wrap gap-2 text-xs text-zinc-500 items-center">
-        <span>熱門快搜：</span>
-        <button onclick="quickSearch('資料結構')" class="px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-700 transition">資料結構</button>
-        <button onclick="quickSearch('線性代數')" class="px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-700 transition">線性代數</button>
-        <button onclick="quickSearch('統計學')" class="px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-700 transition">統計學</button>
-        <button onclick="quickSearch('計算機概論')" class="px-2 py-1 bg-zinc-100 hover:bg-zinc-200 rounded text-zinc-700 transition">計算機概論</button>
-      </div>
-    </div>
+// 1. 先宣告一個空的資料庫變數
+  let DB = [];
 
-    <!-- 資料表格 -->
-    <div class="overflow-x-auto custom-scrollbar max-h-[500px]">
-      <table class="w-full text-left border-collapse">
-        <thead class="sticky top-0 bg-zinc-100 shadow-sm z-10">
-          <tr class="text-[12px] font-semibold text-zinc-500 uppercase tracking-wider">
-            <th class="py-3 px-4 w-20">學校</th>
-            <th class="py-3 px-4 min-w-[180px]">系所與組別</th>
-            <th class="py-3 px-4 w-16">名額</th>
-            <th class="py-3 px-4 min-w-[250px]">考試科目</th>
-            <th class="py-3 px-4 w-32">筆試日期</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody" class="divide-y divide-zinc-100 text-sm"></tbody>
-      </table>
-    </div>
-    <div id="emptyState" class="hidden py-10 text-center text-zinc-400 text-sm bg-zinc-50">
-      找不到符合條件的系所，請嘗試其他關鍵字。
-    </div>
-  </div>
-
-  <script>
-    // 預載的簡章資料庫 (可隨時擴充 JSON)
-    const DB = [
-      { school: "台大", dept: "資訊工程學系碩士班", group: "一般生", quota: 60, subjects: ["英文(A)", "數學(A)(線性代數/離散數學)", "計算機結構與作業系統", "資料結構與演算法"], exam_date: "116-01-30~01-31" },
-      { school: "台大", dept: "資訊管理學系碩士班", group: "一般生", quota: 20, subjects: ["英文(A)", "資訊科技概論", "資訊管理導論與統計學"], exam_date: "116-01-30~01-31" },
-      { school: "台大", dept: "商學研究所碩士班", group: "甲組", quota: 17, subjects: ["英文(A)", "管理學/經濟學/統計學(三擇二)"], exam_date: "116-01-30~01-31" },
-      { school: "清大", dept: "資訊工程學系碩士班", group: "一般生", quota: 54, subjects: ["計算機科學(資料結構/演算法)", "計算機系統(作業系統/計組)", "計算機數學(離散/線代)"], exam_date: "116-01-26" },
-      { school: "清大", dept: "資訊系統與應用研究所", group: "一般生", quota: 16, subjects: ["計算機概論", "英文"], exam_date: "116-01-26" },
-      { school: "陽明交大", dept: "資訊聯招 (資科工/網工/多媒體/數據/資安)", group: "聯合招生", quota: 120, subjects: ["資料結構與演算法", "線性代數與離散數學", "計算機系統"], exam_date: "116-01-27" },
-      { school: "陽明交大", dept: "資訊管理研究所碩士班", group: "一般生", quota: 12, subjects: ["資訊科技與管理", "英文"], exam_date: "116-01-28" },
-      { school: "中山", dept: "資訊工程學系碩士班", group: "甲組", quota: 28, subjects: ["作業系統與資料結構", "離散數學與線性代數"], exam_date: "116-02-03" },
-      { school: "中山", dept: "資訊管理學系碩士班", group: "甲組(資訊管理組)", quota: 18, subjects: ["計算機概論", "管理資訊系統"], exam_date: "116-02-03" }
-    ];
-
-    function getSchoolColor(school) {
-      const colors = { '台大': 'bg-blue-100 text-blue-700', '清大': 'bg-purple-100 text-purple-700', '陽明交大': 'bg-indigo-100 text-indigo-700', '中山': 'bg-emerald-100 text-emerald-700' };
-      return colors[school] || 'bg-zinc-100 text-zinc-700';
-    }
-
-    function quickSearch(kw) {
-      document.getElementById('searchInput').value = kw;
-      renderTable();
-    }
-
-    function renderTable() {
-      const query = document.getElementById('searchInput').value.trim().toLowerCase();
-      const schoolFilter = document.getElementById('schoolSelect').value;
-      const tbody = document.getElementById('tableBody');
-      const emptyState = document.getElementById('emptyState');
+  // 2. 當網頁載入時，自動去同一個資料夾下抓取 data.json
+  fetch('./data.json')
+    .then(response => {
+      if (!response.ok) throw new Error('找不到資料檔');
+      return response.json();
+    })
+    .then(data => {
+      // 3. 把抓下來的資料倒進 DB 變數裡
+      DB = data;
       
-      tbody.innerHTML = '';
+      // 4. 資料準備好後，才開始渲染表格與計算總數
+      renderTable();
+    })
+    .catch(error => {
+      console.error('抓取資料失敗:', error);
+      document.getElementById('gewTbody').innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">資料載入失敗，請確認 data.json 檔案是否存在</td></tr>`;
+    });
 
-      const filtered = DB.filter(row => {
-        if (schoolFilter !== 'ALL' && row.school !== schoolFilter) return false;
-        if (!query) return true;
-        return row.school.includes(query) || row.dept.toLowerCase().includes(query) || row.group.toLowerCase().includes(query) || row.subjects.some(s => s.toLowerCase().includes(query));
-      });
-
-      if (filtered.length === 0) {
-        emptyState.classList.remove('hidden');
-        return;
-      }
-      emptyState.classList.add('hidden');
-
-      filtered.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-zinc-50 transition";
-        const subjectTags = item.subjects.map(sub => `<span class="inline-block px-2 py-0.5 m-0.5 rounded text-xs bg-zinc-100 text-zinc-700">${sub}</span>`).join('');
-        const conflictAlert = item.exam_date.includes('01-27') ? `<div class="mt-1 text-[10px] text-amber-600 font-medium">⚠️ 1/27 撞期</div>` : '';
-        
-        tr.innerHTML = `
-          <td class="py-3 px-4 align-top"><span class="inline-block px-2 py-0.5 text-xs font-semibold rounded ${getSchoolColor(item.school)}">${item.school}</span></td>
-          <td class="py-3 px-4 align-top"><div class="font-medium text-zinc-900">${item.dept}</div><div class="text-xs text-zinc-400 mt-0.5">${item.group}</div></td>
-          <td class="py-3 px-4 align-top font-mono text-zinc-600">${item.quota}</td>
-          <td class="py-3 px-4 align-top"><div class="flex flex-wrap -m-0.5">${subjectTags}</div></td>
-          <td class="py-3 px-4 align-top text-xs font-mono text-zinc-700 whitespace-nowrap">${item.exam_date}${conflictAlert}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    renderTable();
-  </script>
-</body>
-</html>
+  // (以下保留原本的 renderTable, setSchool, quickSearch 等功能，完全不用改)
